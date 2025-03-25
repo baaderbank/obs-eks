@@ -50,6 +50,12 @@ export class CdkStack extends cdk.Stack {
           subnetType: ec2.SubnetType.PRIVATE_ISOLATED, 
         },
       ],
+      remoteNodeNetworks: [
+        {cidrs: ["x.x.x.x/24"]} //On-prem node cidr range, must for hybrid nodes
+      ],
+      remotePodNetworks: [
+        {cidrs: ["x.x.x.x/24"]} //On-prem pod cidr range
+      ]
     });
 
 
