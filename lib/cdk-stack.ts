@@ -18,35 +18,38 @@ export class CdkStack extends cdk.Stack {
       vpcId: 'vpc-xxxxxxxx' // Replace VPC ID
     });
 
+    const eksSecurityGroup = new ec2.SecurityGroup(this, 'EksClusterSG', {
+      vpc,
+      description: 'Allow access to EKS cluster',
+      allowAllOutbound: true
+    });
 
-    //Security groups if required
-    // const eksSecurityGroup = new ec2.SecurityGroup(this, 'EksClusterSG', {
-    //   vpc,
-    //   description: 'Allow access to EKS cluster',
-    //   allowAllOutbound: true
-    // });
+    eksSecurityGroup.addIngressRule(
+      ec2.Peer.ipv4('x.x.x.x/24'),  
+      ec2.Port.tcp(443),  
+      'Allow on-prem node CIDR range'
+    );
 
-    // eksSecurityGroup.addIngressRule(
-    //   ec2.Peer.ipv4('x.x.x.x/32'),  
-    //   ec2.Port.tcp(443),  
-    //   'Allow EKS API access from workstation'
-    // );
+    eksSecurityGroup.addIngressRule(
+      ec2.Peer.ipv4('x.x.x.x/24'),  
+      ec2.Port.tcp(443),  
+      'Allow on-prem pod CIDR range'
+    );
 
-  
     const cluster = new eks.Cluster(this, 'obs', {
       version: eks.KubernetesVersion.V1_32,
       kubectlLayer: new KubectlV32Layer(this, 'kubectl'),
       clusterName: "obs-test",
-      // securityGroup: eksSecurityGroup, //uncomment if adding sg
+      securityGroup: eksSecurityGroup, 
       defaultCapacity: 0, // prevent CDK from creating default worker nodes 
       vpc,
 
       //to deploy cluster in private subnets
-      // vpcSubnets: [
-      //   {
-      //     subnetType: ec2.SubnetType.PRIVATE_ISOLATED, 
-      //   },
-      // ],
+      vpcSubnets: [
+        {
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED, 
+        },
+      ],
     });
 
 
@@ -83,7 +86,8 @@ export class CdkStack extends cdk.Stack {
         'cni': { 'exclusive': true },
         'ipam': { 'mode': 'cluster-pool' },
         'bpf': { 'masquerade': true },
-        'nodePort': {'enabled': true}
+        'nodePort': {'enabled': true},
+        'clusterPoolIPv4PodCIDRList': ["10.20.0.0/16"] //change CIDR
         // 'routingMode': 'native',
         // 'ipv4NativeRoutingCIDR': "10.11.0.0/16",
       }
