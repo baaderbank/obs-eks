@@ -10,11 +10,22 @@ export class CdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // const vpc = new ec2.Vpc(this, 'EKS-VPC', { maxAzs: 2 }); //to create vpc
-    // find existing vpc
-    const vpc = ec2.Vpc.fromLookup(this, 'ExistingVPC', {
-      vpcId: 'vpc-xxxxxxxx' // Replace VPC ID
+    const vpc = new ec2.Vpc(this, 'IsolatedVPC', {
+      maxAzs: 2, // Number of Availability Zones
+      subnetConfiguration: [
+        {
+          cidrMask: 24,
+          name: 'IsolatedSubnet',
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        },
+      ],
     });
+    // find existing vpc
+
+    // const vpc = ec2.Vpc.fromLookup(this, 'ExistingVPC', {
+    //   vpcId: 'vpc-xxxxxxxx' // Replace VPC ID
+    // });
+
 
     const eksSecurityGroup = new ec2.SecurityGroup(this, 'EksClusterSG', {
       vpc,
@@ -40,17 +51,147 @@ export class CdkStack extends cdk.Stack {
       'Allow on-prem pod CIDR range'
     );
 
-    const endpointSecurityGroup = new ec2.SecurityGroup(this, 'EndpointSG', {
+    new ec2.InterfaceVpcEndpoint(this, 'EcrVpcEndpoint', {
       vpc,
-      description: 'Security group for VPC endpoints',
-      allowAllOutbound: true, // Ensure outbound traffic is allowed
+      service: ec2.InterfaceVpcEndpointAwsService.ECR, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
     });
 
-    /*const eksEndpoint = vpc.addInterfaceEndpoint('EKSServiceEndpoint', {
-      service: ec2.InterfaceVpcEndpointAwsService.EKS,
-      privateDnsEnabled: true,
-      securityGroups: [endpointSecurityGroup],
-    });*/
+    new ec2.InterfaceVpcEndpoint(this, 'EcrDockerVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+
+    new ec2.InterfaceVpcEndpoint(this, 'CwVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_MONITORING, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'CwLogsVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'StSLogsVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.STS,
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'SsmLogsVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.SSM, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'SsmMessagesLogsVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.SSM_MESSAGES, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'LambdaVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.LAMBDA, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'EKSVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.EKS, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'EC2VpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.EC2, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'EC2MessagesVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.EC2_MESSAGES, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'StepFVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.STEP_FUNCTIONS, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+
+    new ec2.InterfaceVpcEndpoint(this, 'StepFSyncVpcEndpoint', {
+      vpc,
+      service: ec2.InterfaceVpcEndpointAwsService.STEP_FUNCTIONS_SYNC, 
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        availabilityZones: vpc.availabilityZones, 
+      },
+      securityGroups: [eksSecurityGroup], 
+    });
+    
+    new ec2.GatewayVpcEndpoint(this, 'S3VpcEndpoint', {
+      vpc,
+      service: ec2.GatewayVpcEndpointAwsService.S3, // S3 service
+      subnets: [
+        {
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED, 
+        },
+      ],
+    });
+
 
     const cluster = new eks.Cluster(this, 'obs', {
       version: eks.KubernetesVersion.V1_32,
@@ -58,9 +199,14 @@ export class CdkStack extends cdk.Stack {
       clusterName: "obs-test",
       securityGroup: eksSecurityGroup, 
       placeClusterHandlerInVpc: true,
-      clusterHandlerSecurityGroup: endpointSecurityGroup,
       endpointAccess: eks.EndpointAccess.PRIVATE,
-      defaultCapacity: 0, // prevent CDK from creating default worker nodes 
+      defaultCapacity: 0, // prevent CDK from creating default worker nodes
+      clusterHandlerEnvironment: {
+        AWS_STS_REGIONAL_ENDPOINTS: 'regional',
+      },
+      kubectlEnvironment: {
+        AWS_STS_REGIONAL_ENDPOINTS: 'regional',
+      },
       vpc,
       authenticationMode: eks.AuthenticationMode.API_AND_CONFIG_MAP,
       //to deploy cluster in private subnets<
@@ -88,6 +234,9 @@ export class CdkStack extends cdk.Stack {
         }
       );
     });
+
+
+
 
   // System setup
     // cluster.addHelmChart('metrics-server', {
